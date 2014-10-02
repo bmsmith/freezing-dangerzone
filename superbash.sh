@@ -3,9 +3,13 @@
 echo Starting preprocessor...
 cp $1 output.sh
 # Substitutions to fix bash++ into bash
-sed -i.bak "s/if \[/if \[ /g" output.sh
-sed -i.bak "s/\]/ ]/g" output.sh
-sed -i.bak "s/ = /=/g" output.sh
-sed -i.bak "s/ then/\nthen/g" output.sh
+sed -i "s/if \[/if \[ /g" output.sh
+sed -i "s/\]/ ]/g" output.sh
+sed -i "s/ = /=/g" output.sh
+sed -i "s/ then/\nthen/g" output.sh
 # Repetition compiler
 
+ 
+sed -i "s|repeat \(\S*\) times|repeat_var=\1\nwhile \[ itr -lt \$repeat_var \]\ndo\n\$itr=\$\[\$itr-1\]|g" output.sh
+sed -i "s/^}$/done/g" output.sh
+sed -i "s/^{$//g" output.sh
