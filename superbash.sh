@@ -1,6 +1,12 @@
 #!/bin/bash
 
-echo Starting preprocessor...
+# Group 7
+# Michael Pittard
+# Bradford Smith
+# Paul Yapobi
+# Jonathan Morgan
+
+# Preprocessor...
 cp $1 output.sh
 # Substitutions to fix bash++ into bash
 sed -i "s/if \[/if \[ /g" output.sh
