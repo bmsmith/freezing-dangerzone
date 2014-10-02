@@ -1,0 +1,4 @@
+if [ fun -lt read ]
+then
+x=6
+fi
