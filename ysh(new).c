@@ -155,11 +155,11 @@ int get_split_index()
 	for(i=0; my_argv[i] != NULL; i++)
 	{
 		//printf("%s\n", my_argv[i] );
-		if(my_argv[i][0] == '>')
+		if( strcmp(my_argv[i], ">") == 0)
 			return_value = i;
-		else if(my_argv[i][0] == '<')
+		else if(strcmp(my_argv[i], "<") == 0)
 			return_value = i;
-		else if(my_argv[i][0] == '|')
+		else if(strcmp(my_argv[i], "|") == 0)
 			return_value = i;
 	}
 	return return_value;
@@ -223,6 +223,181 @@ void our_pipe(split_index)
 
 } 
 
+void write_file(split_index)
+{
+  int fds[2];
+  int child[2];
+  char *args_exe[100];
+  char *args_file[100];
+  char *argv[3];
+  char c;
+  //char c[1000];
+  int i;
+
+  
+  FILE *out_file;
+  
+  for(i=0; i<100; i++)
+  {
+	args_file[i] = NULL;
+	args_exe[i] = NULL;
+  }
+  
+  for(i=0; i < split_index; i++)
+  {
+	args_exe[i] = my_argv[i];
+	//printf("%s ", args_out[i]);
+  }
+  
+  //printf("\n");
+  for(i=1; my_argv[i+split_index] != NULL; i++)
+  {
+	args_file[i-1] = my_argv[i+split_index];
+	//printf("%s ", args_in[i-1]);
+  }
+  //printf("\n");
+  
+  
+  
+  pipe(fds);
+
+  if (fork() == 0) {
+    close(fds[0]);
+    close(STDOUT_FILENO); dup(fds[1]); 
+    execv(args_exe[0], args_exe);
+    exit(0);
+	
+	//printf("wat is happen?");
+
+  }
+  if (fork()== 0) {
+    close(fds[1]);
+    close(STDIN_FILENO); dup(fds[0]); 
+   
+	//printf("i = 5\n");
+	
+	out_file  = fopen(args_file[0], "w");
+	//in_file  = fopen("input", "r");
+	
+	if( out_file != NULL)
+	{
+		while(c != EOF) {
+			c = getchar();
+			fprintf(out_file, "%c", c);
+		}
+		
+		fclose(out_file);
+	}
+	
+	
+	
+
+	
+	
+    exit(0);
+
+
+  }
+
+  close(fds[1]);
+  wait(&child[0]);
+  wait(&child[0]);  
+  
+} 
+
+void read_file(split_index)
+{
+  int fds[2];
+  int child[2];
+  char *args_exe[100];
+  char *args_file[100];
+  char *argv[3];
+  //char c[1000];
+  int i;
+  
+  char * buffer = 0;
+  int length;
+  
+  FILE *in_file;
+  
+  for(i=0; i<100; i++)
+  {
+	args_file[i] = NULL;
+	args_exe[i] = NULL;
+  }
+  
+  for(i=0; i < split_index; i++)
+  {
+	args_exe[i] = my_argv[i];
+	//printf("%s ", args_out[i]);
+  }
+  
+  //printf("\n");
+  for(i=1; my_argv[i+split_index] != NULL; i++)
+  {
+	args_file[i-1] = my_argv[i+split_index];
+	//printf("%s ", args_in[i-1]);
+  }
+  //printf("\n");
+  
+  
+  
+  pipe(fds);
+
+  if (fork() == 0) {
+    close(fds[1]);
+    close(STDIN_FILENO); dup(fds[0]);  /* redirect standard output to fds[0] */
+    execv(args_exe[0], args_exe);
+    exit(0);
+	
+	//printf("wat is happen?");
+
+  }
+  if (fork()== 0) {
+    close(fds[0]);
+    close(STDOUT_FILENO); dup(fds[1]); /* redirect standard input to fds[1] */ 
+   
+	//printf("i = 5\n");
+	
+	in_file  = fopen(args_file[0], "r");
+	//in_file  = fopen("input", "r");
+	
+	if( in_file != NULL)
+	{
+		/*
+		fscanf(in_file,"%s",c);
+		printf("%s", c);
+		fclose(in_file);*/
+		
+		fseek (in_file, 0, SEEK_END);
+		length = ftell (in_file);
+		fseek (in_file, 0, SEEK_SET);
+		buffer = malloc (length);
+		  if (buffer)
+		  {
+			fread (buffer, 1, length, in_file);
+		  }
+	}
+	
+	
+	
+	if (buffer)
+	{
+		printf("%s", buffer);
+	}
+	
+	
+    exit(0);
+
+
+  }
+
+  close(fds[1]);
+  wait(&child[0]);
+  wait(&child[0]);  
+  
+} 
+
 int get_command_type(int split_index)
 {	
 	if( split_index == -1)
@@ -233,7 +408,7 @@ int get_command_type(int split_index)
 	else if(my_argv[split_index][0] == '<') //redirection
 		return 2;
 	else if(my_argv[split_index][0] == '>')
-		return 2;
+		return 3;
 	else if(my_argv[split_index][0] == '|') //pipe
 		return 1;
 }
@@ -243,7 +418,7 @@ int get_command_type(int split_index)
 int main(int argc, char *argv[], char *envp[])
 {
 	// here be some code from Jonathan
-	int command_type = 0; //this helps differentiate what we're doing. 0 is the normal execution, 1 is for pipes, 2 is for redirection, 3 is for background processes, and 4 is for echo
+	int command_type = 0; //this helps differentiate what we're doing. 0 is the normal execution, 1 is for pipes, 2 and 3 are for read from and write to file, 4 can be used for background process
 	int split_index; //this is the index of <, >, or | should there be one.
 	
 	
@@ -312,11 +487,19 @@ int main(int argc, char *argv[], char *envp[])
 						   }
 						}
 						else if (command_type == 1)
-						{
-							printf("You really won't enjoy this.\n");
-							our_pipe(split_index);
-							
-							
+						{							
+							our_pipe(split_index);							
+						}
+						else if (command_type == 2)
+						{							
+							//our_pipe(split_index);
+							//printf("you chose <");
+							read_file(split_index);
+						}
+						else if (command_type == 3)
+						{							
+							//our_pipe(split_index);	
+							write_file(split_index);
 						}
 					   
 					   
